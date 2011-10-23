@@ -2,13 +2,14 @@ var Crypto = require('crypto'),
 	Canvas = require('canvas'),
 	Color = require('color'),
 	canvas = {
-		width: 350,
-		height: 500,
+		width: 400,
+		height: 550,
 		padding: 40,
 		grid: 20,
-		max_size:100,
+		max_size: 80,
 		min_size: 5,
-		transparency: 0.5,
+		transparency: 0.6,
+		title: 'Twart',
 		el: null,
 		ctx: null
 	};
@@ -70,20 +71,31 @@ function renderTweets (tweets, options) {
 	ctx.strokeStyle = '#222';
 	ctx.strokeRect(0,0,canvas.width,canvas.height);
 
+	// add credit
+	ctx.fillStyle = '#666';
+	ctx.font = '10px sans-serif';
+	ctx.textAlign = 'center';
+	ctx.fillText('cleverchris.com/twart/' + tweets[0].user.screen_name, canvas.width / 2, canvas.height - canvas.padding  / 2);
+
+	// add title
+	ctx.fillStyle = '#222';
+	ctx.font = 'bold 16px serif';
+	ctx.fillText(canvas.title, canvas.width / 2, canvas.padding / 2 + 8);
+
 	return canvas.el;
 }
 
 function renderTweet (tweet, ctx) {
 
 	var size = Math.max(Math.round(tweet.text.length / 140 * canvas.max_size, canvas.min_size)),
-		date = new Date(tweet.created_at),
+		date = new Date(tweet.created_at), 
 		hash,
 		x,
 		y;
 
 	if (canvas.grid) {
 
-		size = sizeToGrid(size);
+		size = alignToGrid(size);
 
 	}
 
@@ -94,8 +106,8 @@ function renderTweet (tweet, ctx) {
 
 	if (canvas.grid) {
 		
-		x = alignToGrid(x, canvas.width);
-		y = alignToGrid(y, canvas.height);
+		x = alignToGrid(x);
+		y = alignToGrid(y);
 		
 	}
 
@@ -104,8 +116,8 @@ function renderTweet (tweet, ctx) {
 		width: size,
 		x: x,
 		y: y,
-		color: getColor(tweet.text).clearer(canvas.transparency),
-		flip: (typeof tweet.retweeted_status != 'undefined')
+		color: getColor(tweet.text).clearer(canvas.transparency).saturate(0.4),
+		flip: (tweet.text.substring(0,3) == 'RT ')
 	});
 }
 
@@ -129,18 +141,20 @@ function drawTriangle (options) {
 	if (options.flip) {
 
 		coords = [
-			{ x: x + width / 2, y: y },
-			{ x: x + width, y: y + height},
-			{ x: x , y: y + height}
+			{ x: x, y: y },
+			{ x: x + width, y: y},
+			{ x: x + width / 2, y: y + height}
 		];
 
 	}
 	else {
 
+		x = x - width / 2;
+
 		coords = [
-			{ x: x, y: y },
-			{ x: x + width, y: y},
-			{ x: x + width / 2, y: y + height}
+			{ x: x + width / 2, y: y },
+			{ x: x + width, y: y + height},
+			{ x: x , y: y + height}
 		];
 
 	}
@@ -151,12 +165,12 @@ function drawTriangle (options) {
 	
 	if (color.light()) {
 
-		color.darken(0.6);
+		color.darken(0.7);
 
 	}
 	else {
 
-		color.lighten(0.6);
+		color.lighten(0.7);
 
 	}
 
@@ -168,7 +182,6 @@ function drawTriangle (options) {
 	ctx.lineTo(coords[1].x, coords[1].y);
 	ctx.lineTo(coords[2].x, coords[2].y);
 	ctx.fill();
-
 }
 
 function md5 (text) {
@@ -177,22 +190,13 @@ function md5 (text) {
 	
 }
 
-function sizeToGrid (value) {
+function alignToGrid (value) {
 	return Math.round(value / canvas.grid) * canvas.grid;
-}
-
-function alignToGrid (value, max) {
-
-	return Math.min(
-		sizeToGrid(value),
-		sizeToGrid(max - canvas.padding - canvas.grid)
-	);
-
 }
 
 function getCoord (hex, size, max) {
 	
-	return parseInt(hex, 16) / 4095 * (max - canvas.padding * 2) + canvas.padding - size / 2;
+	return parseInt(hex, 16) / 4095 * (max - canvas.padding * 2) + canvas.padding / 2;
 
 }
 
