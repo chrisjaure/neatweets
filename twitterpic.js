@@ -7,9 +7,9 @@ var Crypto = require('crypto'),
 		padding: 40,
 		grid: 20,
 		max_size: 80,
-		min_size: 5,
-		transparency: 0.6,
-		title: 'Twart',
+		min_size: 20,
+		transparency: 0.4,
+		title: 'Neatweets',
 		el: null,
 		ctx: null
 	};
@@ -22,12 +22,22 @@ function renderTweets (tweets, options) {
 
 	}
 
-	canvas = Object.create(canvas, options || {}); 
+	options = options || {};
+
+	for (var attrname in options) {
+
+		canvas[attrname] = options[attrname];
+
+	}
 
 	var pad = canvas.padding,
 		ctx;
 
-	canvas.el = new Canvas(canvas.width,canvas.height);
+	if (!canvas.el) {
+		
+		canvas.el = new Canvas(canvas.width,canvas.height);
+
+	}
 	ctx = canvas.ctx = canvas.el.getContext('2d');
 
 	// white background
@@ -43,10 +53,10 @@ function renderTweets (tweets, options) {
 	// frame & inset box shadow
 	ctx.fillStyle = '#fff';
 
-	ctx.shadowOffsetX = 6;
-	ctx.shadowOffsetY = 6; 
-	ctx.shadowBlur = 8; 
-	ctx.shadowColor = "rgba(0, 0, 0, 0.8)"; 
+	ctx.shadowOffsetX = 2;
+	ctx.shadowOffsetY = 2; 
+	ctx.shadowBlur = 5; 
+	ctx.shadowColor = "rgba(0, 0, 0, 0.6)"; 
 
 	ctx.beginPath();
 
@@ -75,7 +85,7 @@ function renderTweets (tweets, options) {
 	ctx.fillStyle = '#666';
 	ctx.font = '10px sans-serif';
 	ctx.textAlign = 'center';
-	ctx.fillText('cleverchris.com/twart/' + tweets[0].user.screen_name, canvas.width / 2, canvas.height - canvas.padding  / 2);
+	ctx.fillText('cleverchris.com/neatweets/' + tweets[0].user.screen_name, canvas.width / 2, canvas.height - canvas.padding  / 2);
 
 	// add title
 	ctx.fillStyle = '#222';
@@ -182,6 +192,11 @@ function drawTriangle (options) {
 	ctx.lineTo(coords[1].x, coords[1].y);
 	ctx.lineTo(coords[2].x, coords[2].y);
 	ctx.fill();
+
+	ctx.strokeStyle = color.clearer(0.5).rgbaString();
+	ctx.lineWidth = 1;
+	ctx.stroke();
+
 }
 
 function md5 (text) {
