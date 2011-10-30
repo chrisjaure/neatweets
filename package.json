@@ -1,0 +1,20 @@
+{
+  "author": "Chris Jaure <chrisjaure@gmail.com> (http://cleverchris.com/)",
+  "name": "neatweets",
+  "description": "Generate art from your tweets!",
+  "version": "1.0.0",
+  "homepage": "http://chrisjaure.com/neatweets/",
+  "repository": {
+    "url": "http://github.com/chrisjaure/neatweets"
+  },
+  "main": "index.js",
+  "engines": {
+    "node": "~0.4.12"
+  },
+  "dependencies": {
+    "canvas": "0.7",
+    "color": "0.4",
+    "connect": "1.7"
+  },
+  "devDependencies": {}
+}
