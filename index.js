@@ -1,131 +1,227 @@
-var Http = require('http'),
-	Fs = require('fs'),
-	Tweetpic = require('./twitterpic'),
-	Connect = require('connect'),
-	port = 8001,
-	max_tries = 3,
-	cache = 'cache/';
+var Crypto = require('crypto'),
+	Canvas = require('canvas'),
+	Color = require('color'),
+	canvas = {
+		width: 400,
+		height: 550,
+		padding: 40,
+		grid: 20,
+		max_size: 80,
+		min_size: 20,
+		transparency: 0.4,
+		title: 'Neatweets',
+		credit: 'http://cleverchris.com/neatweets#{username}',
+		el: null,
+		ctx: null
+	};
 
-Connect(
-	Connect.router(routes)
-).listen(port);
-console.log("Neatweets listening on port " + port);
+function renderTweets (tweets, options) {
 
+	if (!tweets || tweets.length == 0) {
 
-function routes(app) {
-	app.get('/neatweets/user/:username', function(req, res){
-		if (hasCache(req.params.username)) {
-			sendImage(getCache(req.params.username), res);
-			return;
-		}
+		return;
+
+	}
+
+	options = options || {};
+
+	for (var attrname in options) {
+
+		canvas[attrname] = options[attrname];
+
+	}
+
+	var pad = canvas.padding,
+		ctx;
+
+	if (!canvas.el) {
 		
-		var tries = 0;
+		canvas.el = new Canvas(canvas.width,canvas.height);
+
+	}
+	ctx = canvas.ctx = canvas.el.getContext('2d');
+
+	// white background
+	ctx.fillStyle = '#fff';
+	ctx.fillRect(0,0,canvas.width,canvas.height);
+
+	tweets.forEach(function(tweet){
+
+		renderTweet(tweet, canvas.ctx);
+
+	});
+
+	// frame & inset box shadow
+	ctx.fillStyle = '#fff';
+
+	ctx.shadowOffsetX = 2;
+	ctx.shadowOffsetY = 2; 
+	ctx.shadowBlur = 5; 
+	ctx.shadowColor = "rgba(0, 0, 0, 0.6)"; 
+
+	ctx.beginPath();
+
+	ctx.moveTo( canvas.width, canvas.height );
+	ctx.lineTo( 0, canvas.height );
+	ctx.lineTo( 0, 0 );
+	ctx.lineTo( canvas.width, 0 );
+	ctx.lineTo( canvas.width, canvas.height );
+
+	ctx.moveTo( canvas.width - pad, pad );
+	ctx.lineTo( pad, pad );
+	ctx.lineTo( pad, canvas.height - pad );
+	ctx.lineTo( canvas.width - pad, canvas.height - pad );
+	ctx.lineTo( canvas.width - pad, pad );
+	ctx.closePath();
+
+	ctx.fill();
+
+	// border
+	ctx.shadowColor = 'rgba(0,0,0,0)';
+	ctx.lineWidth = 10;
+	ctx.strokeStyle = '#222';
+	ctx.strokeRect(0,0,canvas.width,canvas.height);
+
+	// add credit
+	if (canvas.credit) {
 		
-		getTweets(req.params.username, tries, function(err, tweets){
-			if (err) {
-				res.statusCode = 500;
-				res.end(err.message || err);
-				return;
-			}
-			
-			var canvas = Tweetpic.generate(tweets),
-				imageBuffer = canvas.toBuffer();
+		ctx.fillStyle = '#666';
+		ctx.font = '10px sans-serif';
+		ctx.textAlign = 'center';
+		ctx.fillText(canvas.credit.replace('{username}', tweets[0].user.screen_name), canvas.width / 2, canvas.height - canvas.padding  / 2);
+		
+	}
 
-			sendImage(imageBuffer, res);
+	// add title
+	if (canvas.title) {
+		
+		ctx.fillStyle = '#222';
+		ctx.font = 'bold 16px serif';
+		ctx.fillText(canvas.title, canvas.width / 2, canvas.padding / 2 + 8);
+		
+	}
 
-			writeCache(req.params.username, imageBuffer);
-		});
+	return canvas.el;
+}
+
+function renderTweet (tweet, ctx) {
+
+	var size = Math.max(Math.round(tweet.text.length / 140 * canvas.max_size, canvas.min_size)),
+		date = new Date(tweet.created_at), 
+		hash,
+		x,
+		y;
+
+	if (canvas.grid) {
+
+		size = alignToGrid(size);
+
+	}
+
+	// random position based on time
+	hash = md5(tweet.created_at);
+	x = getCoord(hash.substring(0,3), size, canvas.width);
+	y = getCoord(hash.substring(4,7), size, canvas.height);
+
+	if (canvas.grid) {
+		
+		x = alignToGrid(x);
+		y = alignToGrid(y);
+		
+	}
+
+	drawTriangle({
+		height: size,
+		width: size,
+		x: x,
+		y: y,
+		color: getColor(tweet.text).clearer(canvas.transparency).saturate(0.4),
+		flip: (tweet.text.substring(0,3) == 'RT ')
 	});
 }
 
-function getTweets(username, tries, callback) {
-	tries++;
-	Http.get({
-		host:'api.twitter.com',
-		path: '/1/statuses/user_timeline.json?include_entities=true&include_rts=true&screen_name='+ username +'&count=190'
-	}, function(res){
-		var body = '';
-		res.on('data', function(chunk){
+function getColor (text) {
 
-			body += chunk.toString('utf8');
+	return new Color('#'+md5(text).substring(0,6));
 
-		}).on('end', function(){
-			var tweets;
-
-			try {
-				tweets = JSON.parse(body);
-			}
-			catch(e) {
-				if (tries <= max_tries) {
-					getTweets(username, tries, callback);
-				}
-				else {
-					
-					if (typeof callback == 'function') {
-						callback(e);
-					}
-				}
-				return;
-			}
-
-			if (typeof callback == 'function') {
-				if (tweets.error) {
-					callback(tweets.error);
-				}
-				else {
-					callback(null, tweets);				
-				}
-
-			}
-		});
-
-	}).on('error', function(err){
-		if (typeof callback == 'function') {
-			callback(err);
-		}
-	});
 }
 
-function sendImage (image, res) {
-	res.statusCode = 200;
-	res.setHeader('Content-Type', 'image/png');
-	res.end(image, 'utf-8');
-}
+function drawTriangle (options) {
 
-function writeCache(username, image) {
-	Fs.writeFile(getFilename(username), image);
-}
+	var ctx = canvas.ctx,
+		coords = [],
+		height = options.height || 20,
+		width = options.width || 20,
+		x = options.x || 0,
+		y = options.y || 0,
+		color = options.color || new Color('#fff'),
+		fill;
 
-function hasCache (username) {
-	var filename = getFilename(username),
-		stat;
-		
-	try {
-		stat = Fs.statSync(filename);
+	if (options.flip) {
+
+		coords = [
+			{ x: x, y: y },
+			{ x: x + width, y: y},
+			{ x: x + width / 2, y: y + height}
+		];
+
 	}
-	catch (e) {
-		return false;
+	else {
+
+		x = x - width / 2;
+
+		coords = [
+			{ x: x + width / 2, y: y },
+			{ x: x + width, y: y + height},
+			{ x: x , y: y + height}
+		];
+
 	}
 
-	if (stat && stat.isFile()) {
-		var now = Date.now(),
-			then = new Date(stat.mtime);
-		
-		if (then.getTime() + 3600000 > now) { // expires in 1 hour
-			return true;
-		}
-		else {
-			Fs.unlink(filename);
-		}
+	fill = ctx.createLinearGradient(x, y, x + width, y + height);
+
+	fill.addColorStop(0, color.rgbaString());
+	
+	if (color.light()) {
+
+		color.darken(0.7);
+
+	}
+	else {
+
+		color.lighten(0.7);
+
 	}
 
-	return false;
+	fill.addColorStop(1, color.rgbaString());
+
+	ctx.fillStyle = fill;
+	ctx.beginPath();
+	ctx.moveTo(coords[0].x, coords[0].y);
+	ctx.lineTo(coords[1].x, coords[1].y);
+	ctx.lineTo(coords[2].x, coords[2].y);
+	ctx.fill();
+
+	ctx.strokeStyle = color.clearer(0.5).rgbaString();
+	ctx.lineWidth = 1;
+	ctx.stroke();
+
 }
 
-function getCache (username) {
-	return Fs.readFileSync(getFilename(username));
+function md5 (text) {
+
+	return Crypto.createHash('md5').update(text).digest('hex');
+	
 }
 
-function getFilename (username) {
-	return cache + username + '.png';
+function alignToGrid (value) {
+	return Math.round(value / canvas.grid) * canvas.grid;
 }
+
+function getCoord (hex, size, max) {
+	
+	return parseInt(hex, 16) / 4095 * (max - canvas.padding * 2) + canvas.padding / 2;
+
+}
+
+module.exports.generate = renderTweets;
