@@ -2,14 +2,15 @@ var Http = require('http'),
 	Fs = require('fs'),
 	Tweetpic = require('./twitterpic'),
 	Connect = require('connect'),
+	port = 8001,
 	max_tries = 3,
 	cache = 'cache/';
 
 Connect(
-	//Connect.vhost('*.cleverchris.com', Connect(
-		Connect.router(routes)
-	//))
-).listen(8001);
+	Connect.router(routes)
+).listen(port);
+console.log("Neatweets listening on port " + port);
+
 
 function routes(app) {
 	app.get('/neatweets/user/:username', function(req, res){
