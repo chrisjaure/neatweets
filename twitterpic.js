@@ -10,6 +10,7 @@ var Crypto = require('crypto'),
 		min_size: 20,
 		transparency: 0.4,
 		title: 'Neatweets',
+		credit: 'http://cleverchris.com/neatweets#{username}',
 		el: null,
 		ctx: null
 	};
@@ -82,15 +83,23 @@ function renderTweets (tweets, options) {
 	ctx.strokeRect(0,0,canvas.width,canvas.height);
 
 	// add credit
-	ctx.fillStyle = '#666';
-	ctx.font = '10px sans-serif';
-	ctx.textAlign = 'center';
-	ctx.fillText('cleverchris.com/neatweets/' + tweets[0].user.screen_name, canvas.width / 2, canvas.height - canvas.padding  / 2);
+	if (canvas.credit) {
+		
+		ctx.fillStyle = '#666';
+		ctx.font = '10px sans-serif';
+		ctx.textAlign = 'center';
+		ctx.fillText(canvas.credit.replace('{username}', tweets[0].user.screen_name), canvas.width / 2, canvas.height - canvas.padding  / 2);
+		
+	}
 
 	// add title
-	ctx.fillStyle = '#222';
-	ctx.font = 'bold 16px serif';
-	ctx.fillText(canvas.title, canvas.width / 2, canvas.padding / 2 + 8);
+	if (canvas.title) {
+		
+		ctx.fillStyle = '#222';
+		ctx.font = 'bold 16px serif';
+		ctx.fillText(canvas.title, canvas.width / 2, canvas.padding / 2 + 8);
+		
+	}
 
 	return canvas.el;
 }
