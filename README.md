@@ -22,17 +22,6 @@ Generate art from your tweets.
 
 ## Options
 
-width: 400,
-		height: 550,
-		padding: 40,
-		grid: 20,
-		max_size: 80,
-		min_size: 20,
-		transparency: 0.4,
-		title: 'Neatweets',
-		credit: 'http://cleverchris.com/neatweets#{username}',
-		el: null,
-
 `width`: width of canvas, default `400`
 
 `height`: height of canvas, default `550`
