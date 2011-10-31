@@ -1,6 +1,6 @@
 var Http = require('http'),
 	Fs = require('fs'),
-	Tweetpic = require('./twitterpic'),
+	Neatweets = require('./index'),
 	Connect = require('connect'),
 	port = 8001,
 	max_tries = 3,
@@ -28,7 +28,7 @@ function routes(app) {
 				return;
 			}
 			
-			var canvas = Tweetpic.generate(tweets),
+			var canvas = Neatweets.generate(tweets),
 				imageBuffer = canvas.toBuffer();
 
 			sendImage(imageBuffer, res);
